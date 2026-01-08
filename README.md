@@ -10,8 +10,6 @@ A fast and lightweight backend for a personal budget tracker application built w
 - [Environment Variables](#environment-variables)  
 - [Database Setup](#database-setup)  
 - [Running the App](#running-the-app)  
-- [API Endpoints](#api-endpoints)  
-- [License](#license)  
 
 ---
 
@@ -75,9 +73,7 @@ DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_N
 bun run db:migrate
 ```
 
-to run
-
-2. To start the api
+## Running the App
 
 ```bash
 bun run dev:api
