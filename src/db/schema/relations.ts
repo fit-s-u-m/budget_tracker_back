@@ -1,13 +1,18 @@
-import { defineRelations } from 'drizzle-orm';
-import { default as users } from './users';
+import { relations } from 'drizzle-orm';
+import { default as user } from './users';
 import { default as transactions } from './transactions';
+import categories from './categories';
 
-export const transaction_to_user = defineRelations({ users, transactions }, (r) => ({
-  users: {
-    transactions: r.many.transactions({
-      from: r.users.telegramId,
-      to: r.transactions.telegramId,
-    })
-  }
-}))
+export const transactions_relations = relations(transactions, ({ one, many }) =>
+({
+  user: one(user, {
+    fields: [transactions.telegram_id],
+    references: [user.telegram_id]
+  }),
+  category: one(categories, {
+    fields: [transactions.category],
+    references: [categories.name]
+  })
 
+})
+)
