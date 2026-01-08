@@ -1,0 +1,28 @@
+{
+  "name": "budget_tracker",
+  "scripts": {
+    "dev:api": "bun --watch src/api/index.ts",
+    "dev:client": "bun src/client/index.ts",
+    "build": "tsc && tsc-alias",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "cross-env DB_MIGRATING=true tsx src/db/migrate.ts",
+    "db:seed": "cross-env DB_SEEDING=true tsx src/db/seed.ts",
+    "db:studio": "bunx drizzle-kit studio"
+  },
+  "dependencies": {
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.2.3",
+    "dotenv-expand": "^12.0.3",
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.11.3",
+    "pg": "^8.16.3",
+    "postgres": "^3.4.8",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.5",
+    "@types/pg": "^8.16.0",
+    "drizzle-kit": "^0.31.8",
+    "tsx": "^4.21.0"
+  }
+}
