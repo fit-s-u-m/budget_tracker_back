@@ -2,7 +2,6 @@
   "name": "budget_tracker",
   "scripts": {
     "dev:api": "bun --watch src/api/index.ts",
-    "dev:client": "bun src/client/index.ts",
     "build": "tsc && tsc-alias",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "cross-env DB_MIGRATING=true tsx src/db/migrate.ts",
