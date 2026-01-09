@@ -16,6 +16,7 @@ app.post("/", zValidator("json", createTransactionSchema), async (c) => {
     if (!transactionValidated) {
       return c.json({ error: "Invalid transaction data" }, 400);
     }
+    console.log("Creating transaction:", transactionValidated)
 
     await db.transaction(async (tx) => {
       await createTransaction(tx, transactionValidated, c)
@@ -46,52 +47,63 @@ app.post("/sync", zValidator("json", syncTransactionSchema), async (c) => {
 
 
 // ------------------------ update a new transaction ------------------------
-app.patch("/id", zValidator("json", updateTransactionSchema), async (c) => {
+app.patch("/:id", zValidator("json", updateTransactionSchema), async (c) => {
   try {
     const transactionValidated = c.req.valid('json')
+    const id = c.req.param("id")
+
+    console.log("Updating transaction id:", id)
     await db.transaction(async (tx) => {
 
-      // update transaction
-      await tx.update(transaction).set({
-        ...transactionValidated
-      }).where(eq(transaction.id, transactionValidated.id))
+      if (
+        transactionValidated.amount !== undefined || 
+        transactionValidated.type !== undefined) {
 
-      if (transactionValidated.amount || transactionValidated.type) {
-        await tx.query.transaction.findFirst({ where: eq(transaction.id, transactionValidated.id) }).then(async (oldTransaction) => {
+        const oldTransaction =  await tx.query.transaction.findFirst({ where: eq(transaction.id,id) })
 
-          if (transactionValidated.amount && !transactionValidated.type && oldTransaction) { // only amount is updated
+        if (!oldTransaction) {
+          throw new Error("Transaction not found")
+        }
 
-            const amountToAdd = oldTransaction?.amount - transactionValidated.amount
-            updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd)
-          }
-          else if (!transactionValidated.amount // only type is updated
-            && transactionValidated.type
-            && oldTransaction
-            && transactionValidated.type != oldTransaction.type) {
+        if (transactionValidated.amount !== undefined && !transactionValidated.type && oldTransaction) { // only amount is updated
 
-            const amountToAdd = transactionValidated.type == "credit"
-              ? 2 * oldTransaction.amount
-              : - 2 * oldTransaction.amount
-            updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd)
-          }
-          else if (transactionValidated.amount // both amount and type are updated
-            && transactionValidated.type
-            && oldTransaction
-            && transactionValidated.type != oldTransaction.type) {
+          const amountToAdd =  transactionValidated.amount - oldTransaction?.amount 
+          console.log("Amount to add:", amountToAdd)
+          await updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd)
+        }
+        else if (transactionValidated.amount == undefined // only type is updated
+          && transactionValidated.type
+          && oldTransaction
+          && transactionValidated.type != oldTransaction.type) {
 
-            const amountToRemove = oldTransaction.type == "credit"
-              ? - oldTransaction.amount
-              : oldTransaction.amount
+          const amountToAdd = transactionValidated.type == "credit"
+            ? 2 * oldTransaction.amount
+            : - 2 * oldTransaction.amount
+          await updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd)
+        }
+        else if (transactionValidated.amount !==undefined // both amount and type are updated
+          && transactionValidated.type
+          && oldTransaction
+          && transactionValidated.type != oldTransaction.type) {
 
-            const amountToAdd = transactionValidated.type == "credit" ? transactionValidated.amount : - transactionValidated.amount
-            updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd + amountToRemove)
-          }
+          const amountToRemove = oldTransaction.type == "credit"
+            ? - oldTransaction.amount
+            : oldTransaction.amount
 
-        })
-        return c.json({ message: "Transaction updated successfully" }, 200);
+          const amountToAdd = transactionValidated.type == "credit" ? transactionValidated.amount : - transactionValidated.amount
+          await updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd + amountToRemove)
+        }
 
       }
+
+      // update transaction
+     const teacher =  await tx.update(transaction).set({
+        ...transactionValidated
+      }).where(eq(transaction.id, id))
+      console.log(teacher)
+
     })
+    return c.json({ message: "Transaction updated successfully" }, 200);
 
   } catch (error) {
 
@@ -147,7 +159,7 @@ app.get("/", async (c) => {
     if (!Number.isInteger(limitInt) || limitInt <= 0) {
       return c.json({ error: "Limit must be a positive integer" }, 400);
     }
-    if (!Number.isInteger(offsetInt) || offsetInt <= 0) {
+    if (!Number.isInteger(offsetInt) || offsetInt < 0) {
       return c.json({ error: "Offset must be a positive integer" }, 400);
     }
 

@@ -15,7 +15,6 @@ export const createTransactionSchema = z.object({
 
 export const updateTransactionSchema = z.object({
 
-  id: z.uuid(),
   amount: z.number().int().positive().optional(),
   type: z.enum(["debit", "credit"]).optional(),
 

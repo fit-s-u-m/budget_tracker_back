@@ -36,20 +36,23 @@ export const createTransaction = async (
   transaction_validated: z.infer<typeof createTransactionSchema>,
   c: Context,
 ) => {
-
-
   const categoryFinded = await tx.query.category.findFirst({
     where: eq(category.name, transaction_validated.category)
   });
+  console.log("categoryFinded:", categoryFinded, transaction_validated);
 
   if (!categoryFinded) {
-    return c.json({ error: "Category not found" }, 400);
+    throw new Error(`Category '${transaction_validated.category}' does not exist.`);
   }
+  console.log(transaction_validated)
 
   // Insert and get the new transaction id
   const [newTransaction] = await tx
     .insert(transaction)
-    .values(transaction_validated)
+    .values({
+      ...transaction_validated,
+        category_id: categoryFinded.id,
+    })
     .returning({ id: transaction.id }); // <-- returning the id
 
   // newTransaction.id now contains the generated UUID
