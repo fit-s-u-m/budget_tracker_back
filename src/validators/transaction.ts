@@ -23,3 +23,17 @@ export const updateTransactionSchema = z.object({
   reason: z.string().optional(),
   created_at: z.string().optional(),
 });
+
+export const syncTransactionSchema = z.array(
+  z.object({
+    telegram_id: z.number().int().positive(),
+    amount: z.number().int().positive(),
+
+    type: z.enum(["debit", "credit"]),
+    status: z.enum(["active", "inactive"]).optional(),
+
+    category: z.string().min(1),
+    reason: z.string().optional(),
+    created_at: z.string().optional(),
+  })
+);

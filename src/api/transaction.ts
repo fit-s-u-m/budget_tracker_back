@@ -1,8 +1,8 @@
-import { Hono, Context } from "hono"
-import { eq, sql } from "drizzle-orm"
+import { Hono } from "hono"
+import { eq } from "drizzle-orm"
 import { db } from "@/db"; // your db type
-import { category, transaction, user } from "@/db/schema"
-import { createTransactionSchema, updateTransactionSchema } from "@/validators/transaction"
+import { transaction } from "@/db/schema"
+import { createTransactionSchema, syncTransactionSchema, updateTransactionSchema } from "@/validators/transaction"
 import { zValidator } from "@hono/zod-validator";
 import { createTransaction, updateUserBalance, getTransactionById, markTransactionUndo } from "./helpers"
 
@@ -12,16 +12,33 @@ const app = new Hono()
 // ------------------------ create a new transaction ------------------------
 app.post("/", zValidator("json", createTransactionSchema), async (c) => {
   try {
-    const transaction_validated = c.req.valid('json')
-    if (!transaction_validated) {
+    const transactionValidated = c.req.valid('json')
+    if (!transactionValidated) {
       return c.json({ error: "Invalid transaction data" }, 400);
     }
 
     await db.transaction(async (tx) => {
-      createTransaction(tx, transaction_validated, c)
+      await createTransaction(tx, transactionValidated, c)
     })
     return c.json({ message: "Transaction created successfully" }, 201);
 
+  } catch (error) {
+    return c.json({ error: (error as Error).message }, 400);
+  }
+})
+
+// ------------------------ sync offline transaction ------------------------
+
+app.post("/sync", zValidator("json", syncTransactionSchema), async (c) => {
+  try {
+    const offLineTransactions = c.req.valid('json')
+
+    await db.transaction(async (tx) => {
+      for (const transactionValidated of offLineTransactions) {
+        await createTransaction(tx, transactionValidated, c)
+      }
+    })
+    return c.json({ message: "Transactions synced successfully" }, 201);
   } catch (error) {
     return c.json({ error: (error as Error).message }, 400);
   }
@@ -31,42 +48,42 @@ app.post("/", zValidator("json", createTransactionSchema), async (c) => {
 // ------------------------ update a new transaction ------------------------
 app.patch("/id", zValidator("json", updateTransactionSchema), async (c) => {
   try {
-    const transaction_validated = c.req.valid('json')
+    const transactionValidated = c.req.valid('json')
     await db.transaction(async (tx) => {
 
       // update transaction
       await tx.update(transaction).set({
-        ...transaction_validated
-      }).where(eq(transaction.id, transaction_validated.id))
+        ...transactionValidated
+      }).where(eq(transaction.id, transactionValidated.id))
 
-      if (transaction_validated.amount || transaction_validated.type) {
-        await tx.query.transaction.findFirst({ where: eq(transaction.id, transaction_validated.id) }).then(async (oldTransaction) => {
+      if (transactionValidated.amount || transactionValidated.type) {
+        await tx.query.transaction.findFirst({ where: eq(transaction.id, transactionValidated.id) }).then(async (oldTransaction) => {
 
-          if (transaction_validated.amount && !transaction_validated.type && oldTransaction) { // only amount is updated
+          if (transactionValidated.amount && !transactionValidated.type && oldTransaction) { // only amount is updated
 
-            const amountToAdd = oldTransaction?.amount - transaction_validated.amount
+            const amountToAdd = oldTransaction?.amount - transactionValidated.amount
             updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd)
           }
-          else if (!transaction_validated.amount // only type is updated
-            && transaction_validated.type
+          else if (!transactionValidated.amount // only type is updated
+            && transactionValidated.type
             && oldTransaction
-            && transaction_validated.type != oldTransaction.type) {
+            && transactionValidated.type != oldTransaction.type) {
 
-            const amountToAdd = transaction_validated.type == "credit"
+            const amountToAdd = transactionValidated.type == "credit"
               ? 2 * oldTransaction.amount
               : - 2 * oldTransaction.amount
             updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd)
           }
-          else if (transaction_validated.amount // both amount and type are updated
-            && transaction_validated.type
+          else if (transactionValidated.amount // both amount and type are updated
+            && transactionValidated.type
             && oldTransaction
-            && transaction_validated.type != oldTransaction.type) {
+            && transactionValidated.type != oldTransaction.type) {
 
             const amountToRemove = oldTransaction.type == "credit"
               ? - oldTransaction.amount
               : oldTransaction.amount
 
-            const amountToAdd = transaction_validated.type == "credit" ? transaction_validated.amount : - transaction_validated.amount
+            const amountToAdd = transactionValidated.type == "credit" ? transactionValidated.amount : - transactionValidated.amount
             updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd + amountToRemove)
           }
 

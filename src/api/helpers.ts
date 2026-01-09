@@ -1,7 +1,7 @@
 import { category, transaction, user } from "@/db/schema"
 import { eq, sql } from "drizzle-orm"
 import type { db as DB } from "@/db"; // your db type
-import { createTransactionSchema, updateTransactionSchema } from "@/validators/transaction"
+import { createTransactionSchema } from "@/validators/transaction"
 import { Context } from "hono"
 import z from "zod"
 
