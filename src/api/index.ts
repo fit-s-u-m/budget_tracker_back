@@ -1,5 +1,6 @@
 import { Hono } from "hono"
 import env from "@/env"
+import { default as transactions } from "./transaction"
 
 const app = new Hono()
 
@@ -12,6 +13,8 @@ app.onError((err, c) => {
 })
 
 app.get("/", (c) => c.text("Hello from ur fav Budget tracker"))
+
+app.route("/transactions", transactions)
 
 Bun.serve({
   fetch: app.fetch,
