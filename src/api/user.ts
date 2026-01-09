@@ -39,3 +39,4 @@ app.post("/", zValidator("json", createUserSchema), async (c) => {
     return c.json({ error: (err as Error).message }, 400);
   }
 });
+export default app
