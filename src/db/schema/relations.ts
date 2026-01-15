@@ -6,8 +6,8 @@ import categories from './categories';
 export const transactions_relations = relations(transactions, ({ one }) =>
 ({
   user: one(user, {
-    fields: [transactions.telegram_id],
-    references: [user.telegram_id]
+    fields: [transactions.user_id],
+    references: [user.id]
   }),
   category: one(categories, {
     fields: [transactions.category_id],

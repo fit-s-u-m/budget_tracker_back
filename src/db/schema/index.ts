@@ -5,3 +5,4 @@ export { default as category } from "./categories";
 export { default as otps } from "./otps";
 export { transactions_relations } from "./relations";
 export { default as budgetPlan } from "./budgetPlan"
+export { default as transactionUpdateLogs } from "./updateLogs"

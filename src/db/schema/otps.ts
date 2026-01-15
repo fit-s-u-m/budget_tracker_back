@@ -1,10 +1,10 @@
 import { pgTable, integer, timestamp } from "drizzle-orm/pg-core"
 
 const otpCodesTable = pgTable("otp_codes", {
-  telegramId: integer().notNull(),
+  user_id: integer().notNull(),
   otp: integer().notNull(),
-  createdAt: timestamp().defaultNow().notNull(),
-  expiresAt: timestamp().notNull(),
+  created_at: timestamp({mode:"string"}).defaultNow().notNull(),
+  expires_at: timestamp({mode:"string"}).notNull(),
 })
 
 export default otpCodesTable

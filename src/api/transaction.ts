@@ -2,9 +2,9 @@ import { Hono } from "hono"
 import { eq } from "drizzle-orm"
 import { db } from "@/db"; // your db type
 import { transaction } from "@/db/schema"
-import { createTransactionSchema, syncTransactionSchema, updateTransactionSchema } from "@/validators/transaction"
+import { CreateTransaction, createTransactionSchema, syncTransactionSchema, updateTransactionSchema } from "@/validators/transaction"
 import { zValidator } from "@hono/zod-validator";
-import { createTransaction, updateUserBalance, getTransactionById, markTransactionUndo } from "./helpers"
+import { createTransaction, getTransactionById, markTransactionUndo, updateTransaction } from "@/helpers/transaction";
 
 
 const app = new Hono()
@@ -19,7 +19,7 @@ app.post("/", zValidator("json", createTransactionSchema), async (c) => {
     console.log("Creating transaction:", transactionValidated)
 
     await db.transaction(async (tx) => {
-      await createTransaction(tx, transactionValidated, c)
+      await createTransaction(tx, transactionValidated)
     })
     return c.json({ message: "Transaction created successfully" }, 201);
 
@@ -33,10 +33,31 @@ app.post("/", zValidator("json", createTransactionSchema), async (c) => {
 app.post("/sync", zValidator("json", syncTransactionSchema), async (c) => {
   try {
     const offLineTransactions = c.req.valid('json')
+    console.log("Received offline transactions for sync:", offLineTransactions)
+
+
+    // SET key value NX EX 30
 
     await db.transaction(async (tx) => {
-      for (const transactionValidated of offLineTransactions) {
-        await createTransaction(tx, transactionValidated, c)
+      console.log("Fetching categories for sync...")
+      const categories = await tx.query.category.findMany()
+      console.log("Fetched categories:", categories)
+      const categoryMap = new Map(
+          categories.map(cat => [cat.name, cat.id])
+      )
+      console.log("Syncing offline transactions:", offLineTransactions)
+      console.log("Category Map:", categoryMap)
+
+      for (const transaction of offLineTransactions) {
+        const categoryId = categoryMap.get(transaction.category)
+
+        if (!categoryId) {
+          throw new Error(`Category ${transaction.category} not found`)
+        }
+        await createTransaction(
+              tx,
+              { ...transaction, category_id: categoryId }
+        )
       }
     })
     return c.json({ message: "Transactions synced successfully" }, 201);
@@ -53,63 +74,28 @@ app.patch("/:id", zValidator("json", updateTransactionSchema), async (c) => {
     const id = c.req.param("id")
 
     console.log("Updating transaction id:", id)
+    const oldTransaction =  await db.query.transaction.findFirst({ where: eq(transaction.id,id) })
+
+    if (!oldTransaction) {
+      throw new Error("Transaction not found")
+    }
+    const amountChanged = transactionValidated.amount !== undefined && transactionValidated.amount !== oldTransaction.amount
+    const typeChanged = transactionValidated.type !== undefined && transactionValidated.type !== oldTransaction.type
+    const reasonChanged = transactionValidated.reason !== undefined && transactionValidated.reason !== oldTransaction.reason
+    const categoryChanged = transactionValidated.category_id !== undefined && transactionValidated.category_id !== oldTransaction.category_id
+
+    if (!amountChanged && !typeChanged && !reasonChanged && !categoryChanged) {
+      return c.json({ message: "No changes to update" }, 200)
+    }
     await db.transaction(async (tx) => {
-
-      if (
-        transactionValidated.amount !== undefined || 
-        transactionValidated.type !== undefined) {
-
-        const oldTransaction =  await tx.query.transaction.findFirst({ where: eq(transaction.id,id) })
-
-        if (!oldTransaction) {
-          throw new Error("Transaction not found")
-        }
-
-        if (transactionValidated.amount !== undefined && !transactionValidated.type && oldTransaction) { // only amount is updated
-
-          const amountToAdd =  transactionValidated.amount - oldTransaction?.amount 
-          console.log("Amount to add:", amountToAdd)
-          await updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd)
-        }
-        else if (transactionValidated.amount == undefined // only type is updated
-          && transactionValidated.type
-          && oldTransaction
-          && transactionValidated.type != oldTransaction.type) {
-
-          const amountToAdd = transactionValidated.type == "credit"
-            ? 2 * oldTransaction.amount
-            : - 2 * oldTransaction.amount
-          await updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd)
-        }
-        else if (transactionValidated.amount !==undefined // both amount and type are updated
-          && transactionValidated.type
-          && oldTransaction
-          && transactionValidated.type != oldTransaction.type) {
-
-          const amountToRemove = oldTransaction.type == "credit"
-            ? - oldTransaction.amount
-            : oldTransaction.amount
-
-          const amountToAdd = transactionValidated.type == "credit" ? transactionValidated.amount : - transactionValidated.amount
-          await updateUserBalance(tx, oldTransaction.telegram_id, amountToAdd + amountToRemove)
-        }
-
-      }
-
-      // update transaction
-     const teacher =  await tx.update(transaction).set({
-        ...transactionValidated
-      }).where(eq(transaction.id, id))
-      console.log(teacher)
+      updateTransaction(tx, transactionValidated, oldTransaction as CreateTransaction, id)
 
     })
     return c.json({ message: "Transaction updated successfully" }, 200);
 
   } catch (error) {
-
     return c.json({ error: (error as Error).message }, 400);
   }
-
 })
 
 // ------------------------  Undo Transactions  ------------------------
@@ -127,7 +113,7 @@ app.delete("/:id", async (c) => {
       };
 
       const transactionValidated = createTransactionSchema.parse(transaction_undo)
-      const undoTransaction = await createTransaction(tx, transactionValidated, c)
+      const undoTransaction = await createTransaction(tx, transactionValidated)
 
       if ("id" in undoTransaction) {
         await markTransactionUndo(tx, undoTransaction.id)
@@ -180,6 +166,7 @@ app.get("/", async (c) => {
 
 // ------------------------ Fetch Transactions by id ------------------------
 app.get("/:id", async (c) => {
+
   const userAgent = c.req.header('User-Agent')
   console.log('User-Agent:', userAgent)
   const { id } = c.req.param()

@@ -8,7 +8,7 @@ import user from "./users";
 
 const transactionsTable = pgTable("transactions", {
   id: uuid().primaryKey().defaultRandom(),
-  telegram_id: integer().unique().notNull().references(()=>user.telegram_id),
+  user_id: integer().notNull().references(()=>user.id),
   amount: integer().notNull(),
   type: txnType("type"),
   status: statusEnum("status").default("active"),
@@ -17,9 +17,9 @@ const transactionsTable = pgTable("transactions", {
   ...timestamps,
 },
   (table) => [
-    index("txn_telegram_idx").on(table.telegram_id),
+    index("txn_user_idx").on(table.user_id),
     index("txn_category").on(table.category_id),
-    index("txn_telegram_updated_at").on(table.telegram_id, sql`${table.updated_at} DESC`),
+    index("txn_user_updated_at").on(table.user_id, sql`${table.updated_at} DESC`),
     check("amount_check", sql`${table.amount} > 0`)
   ]
 );
