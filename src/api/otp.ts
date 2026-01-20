@@ -9,8 +9,8 @@ app.post("/verify", zValidator("json", verifyOtp), async (c) => {
 
   try {
     const input = c.req.valid('json')
-    await verifyOTP(input.userId, input.otp)
-    return c.json({ message: "successfully verfied otp" }, 200)
+    const resp = await verifyOTP(input.userName, input.otp)
+    return c.json({ message: "successfully verfied otp", ...resp }, 200)
   } catch (error) {
     return c.json({ error: (error as Error).message }, 400);
   }
