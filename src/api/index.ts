@@ -1,8 +1,11 @@
 import { Hono } from "hono"
 import env from "@/env"
-import {bot} from "@/telegramBot"
+import { bot } from "@/telegramBot"
 import { default as transactions } from "./transaction"
 import { default as user } from "./user"
+import { default as otp } from "./otp"
+import { default as category } from "./category"
+import { default as plan } from "./plan"
 
 const app = new Hono()
 
@@ -18,12 +21,14 @@ app.get("/", (c) => c.text("Hello from ur fav Budget tracker"))
 
 app.route("/transactions", transactions)
 app.route("/users", user)
-app.route("/opt", otp)
+app.route("/otp", otp)
+app.route("/categories", category)
+app.route("/plan", plan)
 
 // Start telegram
 bot.start();
 import "@/telegramBot/start"
-// import "@/telegramBot/make_transation"
+import "@/telegramBot/verify"
 
 Bun.serve({
   fetch: app.fetch,
