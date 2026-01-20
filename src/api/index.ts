@@ -6,8 +6,15 @@ import { default as user } from "./user"
 import { default as otp } from "./otp"
 import { default as category } from "./category"
 import { default as plan } from "./plan"
+import { cors } from 'hono/cors'
 
 const app = new Hono()
+
+app.use("/transactions/*", cors())
+app.use("/users/*", cors())
+app.use("/otp/*", cors())
+app.use("/categories/*", cors())
+app.use("/plan/*", cors())
 
 app.notFound((c) => {
   return c.text('This route is not found ', 404)
