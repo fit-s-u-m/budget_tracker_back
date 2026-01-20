@@ -20,6 +20,8 @@ const EnvSchema = z.object({
   DB_SEEDING: stringBoolean,
   TELEGRAM_BOT_TOKEN: z.string(),
   FRONTEND_URL: z.url(),
+  VALKEY_PORT: z.coerce.number(),
+  VALKEY_HOST: z.string(),
 });
 
 export type EnvSchema = z.infer<typeof EnvSchema>;

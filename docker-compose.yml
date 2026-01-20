@@ -9,3 +9,25 @@ services:
       - ${DB_PORT}:5432
     volumes:
       - ./db-data:/var/lib/postgresql/data
+  valkey:
+    image: valkey/valkey:9.0.1-alpine
+    container_name: valkey
+    restart: unless-stopped
+    volumes:
+      - valkey-data:/data
+    command: ["valkey-server", "--save", "60", "1"] # example persistence settings
+    ports:
+      - "6380:6379"
+
+  redis_insight:
+    image: redislabs/redisinsight:latest
+    container_name: redis_insight
+    restart: always
+    ports:
+      - "8001:8001"
+    volumes:
+      - redis_insight_volume_data:/db
+
+volumes:
+  valkey-data:
+  redis_insight_volume_data:
