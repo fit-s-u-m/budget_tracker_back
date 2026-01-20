@@ -1,26 +1,26 @@
 [
   {
-    "name": "Food"
+    "name": "Food",
   },
   {
-    "name": "Transport"
+    "name": "Transport",
   },
   {
-    "name": "Shopping"
+    "name": "Shopping",
   },
   {
-    "name": "Utilities"
+    "name": "Utilities",
   },
   {
-    "name": "Health"
+    "name": "Health",
   },
   {
-    "name": "Entertainment"
+    "name": "Entertainment",
   },
   {
-    "name": "Salary"
+    "name": "Salary",
   },
   {
-    "name": "Miscellaneous"
+    "name": "Miscellaneous",
   }
 ]
