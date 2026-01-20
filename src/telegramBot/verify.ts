@@ -9,9 +9,10 @@ bot.command("generateOTP", async (context) => {
   const telegramId = context.from.id
   const expireTime = 10;
 
+
   const user = await getPrevUser(telegramId)
   if (!user) return context.send("please registor with /start")
-  const otp = await generateOTP(user.id, expireTime)
+  const otp = await generateOTP(user.name, expireTime)
 
   context.send(format
     `
