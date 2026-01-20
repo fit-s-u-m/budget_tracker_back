@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, uuid, pgTable, varchar, pgEnum, index, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { integer, uuid, pgTable, varchar, index, check } from "drizzle-orm/pg-core";
 import { timestamps } from "./util";
 import { txnType, statusEnum } from "./enums";
 
@@ -8,7 +8,7 @@ import user from "./users";
 
 const transactionsTable = pgTable("transactions", {
   id: uuid().primaryKey().defaultRandom(),
-  user_id: integer().notNull().references(()=>user.id),
+  user_id: integer().notNull().references(() => user.id),
   amount: integer().notNull(),
   type: txnType("type"),
   status: statusEnum("status").default("active"),
