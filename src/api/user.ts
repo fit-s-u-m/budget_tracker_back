@@ -8,15 +8,15 @@ import { user } from "@/db/schema";
 
 const app = new Hono();
 
-app.get("/:telegramId", async (c) => {
-  const telegramId = c.req.param("telegramId")
-  if (!telegramId || isNaN(Number(telegramId))) {
-    return c.json({ error: "Invalid telegramId" }, 400)
+app.get("/:userId", async (c) => {
+  const userId = c.req.param("userId")
+  if (!userId || isNaN(Number(userId))) {
+    return c.json({ error: "Invalid userId" }, 400)
   }
   try {
-    const telegramIdInt = Number(telegramId);
+    const userIdInt = Number(userId);
     const userFetched = await db.query.user.findFirst({
-      where: eq(user.telegram_id, telegramIdInt),
+      where: eq(user.id, userIdInt),
     });
     if (!userFetched) {
       return c.json({ error: "User not found" }, 404)

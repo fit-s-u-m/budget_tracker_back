@@ -1,10 +1,12 @@
 import { sql } from "drizzle-orm";
 import { integer, pgTable, varchar, serial, check, uniqueIndex } from "drizzle-orm/pg-core";
 import categories from "./categories";
+import users from "./users";
 import { timestamps } from "./util";
 
 const budgetPlanTable = pgTable("budget_plans", {
   id: serial().primaryKey(),
+  user_id: integer().references(() => users.id),
 
   category: varchar()
     .notNull()
